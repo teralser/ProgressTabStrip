@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="ProgressTabStrip">
+        <attr name="selectedCircleRadius" format="dimension" />
+        <attr name="selectedCircleMargin" format="dimension" />
+        <attr name="pointRadius" format="dimension" />
+        <attr name="stripHeight" format="dimension" />
+
+        <attr name="selectedCircleColor" format="color" />
+        <attr name="pointColorNormal" format="color" />
+        <attr name="pointColorSelected" format="color" />
+        <attr name="stripColor" format="color" />
+
+        <attr name="pointsCount" format="integer" />
+        <attr name="selectedPosition" format="integer" />
+    </declare-styleable>
+</resources>
