@@ -44,7 +44,7 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
     private static final float SELECTED_CIRCLE_RADIUS = 11.6f; //dps
     private static final float SELECTED_CIRCLE_MARGIN = 2f; //dps
     private static final float POINT_RADIUS = 2.5f; //dps
-    private static final float STRIP_HEIGHT = 0.5f; //dps
+    private static final float STRIP_HEIGHT = 1f; //dps
 
     private Paint mSelectedCirclePaint;
     private Paint mPointNormalPaint;
