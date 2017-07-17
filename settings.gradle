@@ -1,1 +1,1 @@
-include ':progressTabStrip'
+include ':progressTabStrip', ':sample'
