@@ -18,13 +18,21 @@ public class MainActivity extends AppCompatActivity {
         final ProgressTabStrip pts = (ProgressTabStrip) findViewById(R.id.pts);
         pts.setPointsCount(7);
 
-        AppCompatCheckBox holdEnabler = (AppCompatCheckBox) findViewById(R.id.holdEnabler);
-        holdEnabler.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                pts.setHoldPassedPositions(b);
-            }
-        });
+        ((AppCompatCheckBox) findViewById(R.id.holdEnabler))
+                .setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                    @Override
+                    public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                        pts.setHoldPassedPositions(b);
+                    }
+                });
+
+        ((AppCompatCheckBox) findViewById(R.id.animationEnabler))
+                .setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                    @Override
+                    public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                        pts.setAnimated(b);
+                    }
+                });
 
         findViewById(R.id.back).setOnClickListener(new View.OnClickListener() {
             @Override

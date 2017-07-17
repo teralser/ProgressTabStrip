@@ -20,6 +20,13 @@
         android:layout_marginTop="20dp"
         android:text="Enable hold of passed positions" />
 
+    <android.support.v7.widget.AppCompatCheckBox
+        android:id="@+id/animationEnabler"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="Enable animation" />
+
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

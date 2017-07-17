@@ -1,5 +1,7 @@
 package teralser.widget;
 
+import android.animation.AnimatorSet;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -17,12 +19,14 @@ import android.support.v4.view.ViewPager;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
 
 /**
  * Created by Alexey Tereshchenko on 12.07.2017.
  */
 
-public class ProgressTabStrip extends View implements ViewPager.OnPageChangeListener {
+public class ProgressTabStrip extends View implements ViewPager.OnPageChangeListener, ValueAnimator.AnimatorUpdateListener {
 
     private static final String TAG = ProgressTabStrip.class.getSimpleName();
 
@@ -39,6 +43,7 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
     private static final String INSTANCE_SELECTED_POSITION = "INSTANCE_SELECTED_POSITION";
     private static final String INSTANCE_HIGHEST_SELECTED = "INSTANCE_HIGHEST_SELECTED";
     private static final String INSTANCE_HOLD_POSITIONS = "INSTANCE_HOLD_POSITIONS";
+    private static final String INSTANCE_ANIMATED = "INSTANCE_ANIMATED";
 
     private static final String COLOR_GRAY = "#4dffffff";
     private static final String COLOR_WHITE = "#ffffff";
@@ -47,6 +52,8 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
     private static final float SELECTED_CIRCLE_MARGIN = 2f; //dps
     private static final float POINT_RADIUS = 2.5f; //dps
     private static final float STRIP_HEIGHT = 1f; //dps
+
+    private static final int ANIMATION_TIME = 80; //ms
 
     private Paint mSelectedCirclePaint;
     private Paint mPointNormalPaint;
@@ -59,6 +66,7 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
     private int mSelectedCircleColor;
     private int mSelectedCircleMargin;
     private int mSelectedCircleRadius;
+    private int mSelectedCircleRadiusOriginal;
     private int mPointsCount;
     private int mPointNormalColor;
     private int mPointSelectedColor;
@@ -66,8 +74,13 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
     private int mStripColor;
     private int mStripHeight;
     private int mSelectedPosition;
+    private int mSelectedPositionDelayed;
     private int mHighestSelectedPosition;
+
     private boolean mHoldPassedPositions;
+    private boolean mIsAnimated;
+
+    private AnimatorSet mAnimatorSet;
 
     public ProgressTabStrip(Context context) {
         super(context);
@@ -94,8 +107,9 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
         TypedArray typedArray = getContext().getTheme().obtainStyledAttributes(attrs,
                 R.styleable.ProgressTabStrip, 0, 0);
         try {
-            mSelectedCircleRadius = typedArray.getDimensionPixelSize(R.styleable.ProgressTabStrip_selectedCircleRadius,
+            mSelectedCircleRadiusOriginal = typedArray.getDimensionPixelSize(R.styleable.ProgressTabStrip_selectedCircleRadius,
                     Math.round(dp2px(SELECTED_CIRCLE_RADIUS)));
+            mSelectedCircleRadius = mSelectedCircleRadiusOriginal;
             mSelectedCircleMargin = typedArray.getDimensionPixelSize(R.styleable.ProgressTabStrip_selectedCircleMargin,
                     Math.round(dp2px(SELECTED_CIRCLE_MARGIN)));
             mSelectedCircleColor = typedArray.getColor(R.styleable.ProgressTabStrip_selectedCircleColor,
@@ -113,11 +127,13 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
                     Color.parseColor(COLOR_GRAY));
             mSelectedPosition = typedArray.getInteger(R.styleable.ProgressTabStrip_selectedPosition, 0);
             mHoldPassedPositions = typedArray.getBoolean(R.styleable.ProgressTabStrip_holdPassedPositions, false);
+            mIsAnimated = typedArray.getBoolean(R.styleable.ProgressTabStrip_animated, false);
         } finally {
             typedArray.recycle();
         }
 
         initPaints();
+        initAnimatorSet();
 
         if (isInEditMode()) {
             if (getPointsCount() == 0) {
@@ -142,6 +158,27 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
         Paint result = new Paint(Paint.ANTI_ALIAS_FLAG);
         result.setColor(color);
         return result;
+    }
+
+    private void initAnimatorSet() {
+
+        if (mAnimatorSet != null) {
+            mAnimatorSet.cancel();
+            mAnimatorSet = null;
+        }
+
+        ValueAnimator animator = ValueAnimator.ofInt(mSelectedCircleRadius, 0);
+        animator.setDuration(ANIMATION_TIME);
+        animator.setInterpolator(new AccelerateInterpolator());
+        animator.addUpdateListener(this);
+
+        ValueAnimator reverseAnimator = ValueAnimator.ofInt(1, mSelectedCircleRadius);
+        reverseAnimator.setDuration(ANIMATION_TIME);
+        reverseAnimator.setInterpolator(new DecelerateInterpolator());
+        reverseAnimator.addUpdateListener(this);
+
+        mAnimatorSet = new AnimatorSet();
+        mAnimatorSet.playSequentially(animator, reverseAnimator);
     }
 
     public void setSelectedCircleColor(@ColorInt int selectedCircleColor) {
@@ -179,6 +216,8 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
 
     public void setSelectedCircleRadius(int selectedCircleRadius) {
         mSelectedCircleRadius = selectedCircleRadius;
+        mSelectedCircleRadiusOriginal = mSelectedCircleRadius;
+        initAnimatorSet();
         invalidate();
     }
 
@@ -207,14 +246,34 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
         }
 
         if (mHoldPassedPositions) updateHighestSelectedPosition(position);
-        mSelectedPosition = position;
+
+        if (mIsAnimated) {
+            mSelectedPositionDelayed = position;
+            if (mAnimatorSet.isRunning()) mAnimatorSet.cancel();
+            mAnimatorSet.start();
+        } else {
+            mSelectedPosition = position;
+            invalidate();
+        }
+    }
+
+    @Override
+    public void onAnimationUpdate(ValueAnimator animation) {
+        int val = (Integer) animation.getAnimatedValue();
+        mSelectedCircleRadius = val;
         invalidate();
+
+        if (val == 0) mSelectedPosition = mSelectedPositionDelayed;
     }
 
     public void setHoldPassedPositions(boolean holdPassedPositions) {
         mHoldPassedPositions = holdPassedPositions;
         mHighestSelectedPosition = holdPassedPositions ? mSelectedPosition : 0;
         invalidate();
+    }
+
+    public void setAnimated(boolean isAnimated) {
+        mIsAnimated = isAnimated;
     }
 
     private void updateHighestSelectedPosition(int position) {
@@ -262,7 +321,7 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
         Log.v(TAG, "onMeasure h: " + MeasureSpec.toString(heightMeasureSpec));
 
         int desiredWidth = getWidth();
-        int desiredHeight = (mSelectedCircleRadius * 2) + getPaddingTop() + getPaddingBottom();
+        int desiredHeight = (mSelectedCircleRadiusOriginal * 2) + getPaddingTop() + getPaddingBottom();
 
         setMeasuredDimension(measureDimension(desiredWidth, widthMeasureSpec),
                 measureDimension(desiredHeight, heightMeasureSpec));
@@ -306,7 +365,7 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
 
     private void calculateSlice() {
         float totalWidth = getWidth() - (getPaddingStart() + getPaddingEnd() +
-                (mSelectedCircleMargin * 2) + (mSelectedCircleRadius * 2));
+                (mSelectedCircleMargin * 2) + (mSelectedCircleRadiusOriginal * 2));
         mSliceWidth = totalWidth / (getPointsCount() - 1);
     }
 
@@ -327,13 +386,13 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
         float cy = getVerticalCenter();
 
         if (isRTL()) {
-            cx = i == 0 ? getWidth() - (getPaddingEnd() + mSelectedCircleRadius + mSelectedCircleMargin) :
-                    i == (getPointsCount() - 1) ? (getPaddingStart() + mSelectedCircleRadius + mSelectedCircleMargin) :
+            cx = i == 0 ? getWidth() - (getPaddingEnd() + mSelectedCircleRadiusOriginal + mSelectedCircleMargin) :
+                    i == (getPointsCount() - 1) ? (getPaddingStart() + mSelectedCircleRadiusOriginal + mSelectedCircleMargin) :
                             mCurrentPointCenter[0] - mSliceWidth;
         } else {
-            cx = i == 0 ? (getPaddingStart() + mSelectedCircleRadius + mSelectedCircleMargin) :
+            cx = i == 0 ? (getPaddingStart() + mSelectedCircleRadiusOriginal + mSelectedCircleMargin) :
                     i == (getPointsCount() - 1) ?
-                            getWidth() - (getPaddingEnd() + mSelectedCircleRadius + mSelectedCircleMargin) :
+                            getWidth() - (getPaddingEnd() + mSelectedCircleRadiusOriginal + mSelectedCircleMargin) :
                             mCurrentPointCenter[0] + mSliceWidth;
         }
 
@@ -341,8 +400,8 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
         mCurrentPointCenter[1] = cy;
     }
 
-    private void drawSelectedCircle(Canvas canvas, int i) {
-        if (i == mSelectedPosition)
+    private void drawSelectedCircle(Canvas canvas, int position) {
+        if (position == mSelectedPosition)
             canvas.drawCircle(mCurrentPointCenter[0], mCurrentPointCenter[1],
                     mSelectedCircleRadius, mSelectedCirclePaint);
     }
@@ -356,10 +415,10 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
     private void drawStrip(Canvas canvas, int i) {
         if (i == (isRTL() ? 0 : getPointsCount() - 1)) return;
 
-        float left = mCurrentPointCenter[0] + mSelectedCircleRadius + mSelectedCircleMargin;
+        float left = mCurrentPointCenter[0] + mSelectedCircleRadiusOriginal + mSelectedCircleMargin;
         float top = getVerticalCenter() - (mStripHeight / 2);
         float right = mCurrentPointCenter[0] + (mSliceWidth -
-                (mSelectedCircleRadius + mSelectedCircleMargin));
+                (mSelectedCircleRadiusOriginal + mSelectedCircleMargin));
         float bottom = getVerticalCenter() + (mStripHeight / 2);
         canvas.drawRect(left, top, right, bottom, mStripPaint);
     }
@@ -379,7 +438,7 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
         bundle.putParcelable(INSTANCE_STATE, super.onSaveInstanceState());
         bundle.putInt(INSTANCE_SELECTED_CIRCLE_COLOR, mSelectedCircleColor);
         bundle.putInt(INSTANCE_SELECTED_CIRCLE_MARGIN, mSelectedCircleMargin);
-        bundle.putInt(INSTANCE_SELECTED_CIRCLE_RADIUS, mSelectedCircleRadius);
+        bundle.putInt(INSTANCE_SELECTED_CIRCLE_RADIUS, mSelectedCircleRadiusOriginal);
         bundle.putInt(INSTANCE_POINT_RADIUS, mPointRadius);
         bundle.putInt(INSTANCE_POINT_NORMAL_COLOR, mPointNormalColor);
         bundle.putInt(INSTANCE_POINT_SELECTED_COLOR, mPointSelectedColor);
@@ -389,6 +448,7 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
         bundle.putInt(INSTANCE_SELECTED_POSITION, mSelectedPosition);
         bundle.putInt(INSTANCE_HIGHEST_SELECTED, mHighestSelectedPosition);
         bundle.putBoolean(INSTANCE_HOLD_POSITIONS, mHoldPassedPositions);
+        bundle.putBoolean(INSTANCE_ANIMATED, mIsAnimated);
         return bundle;
     }
 
@@ -398,7 +458,7 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
             final Bundle bundle = (Bundle) state;
             mSelectedCircleColor = bundle.getInt(INSTANCE_SELECTED_CIRCLE_COLOR);
             mSelectedCircleMargin = bundle.getInt(INSTANCE_SELECTED_CIRCLE_MARGIN);
-            mSelectedCircleRadius = bundle.getInt(INSTANCE_SELECTED_CIRCLE_RADIUS);
+            mSelectedCircleRadiusOriginal = bundle.getInt(INSTANCE_SELECTED_CIRCLE_RADIUS);
             mPointRadius = bundle.getInt(INSTANCE_POINT_RADIUS);
             mPointNormalColor = bundle.getInt(INSTANCE_POINT_NORMAL_COLOR);
             mPointSelectedColor = bundle.getInt(INSTANCE_POINT_SELECTED_COLOR);
@@ -408,7 +468,9 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
             mSelectedPosition = bundle.getInt(INSTANCE_SELECTED_POSITION);
             mHighestSelectedPosition = bundle.getInt(INSTANCE_HIGHEST_SELECTED);
             mHoldPassedPositions = bundle.getBoolean(INSTANCE_HOLD_POSITIONS);
+            mIsAnimated = bundle.getBoolean(INSTANCE_ANIMATED);
             initPaints();
+            initAnimatorSet();
             invalidate();
             super.onRestoreInstanceState(bundle.getParcelable(INSTANCE_STATE));
             return;

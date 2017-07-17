@@ -14,5 +14,6 @@
         <attr name="pointsCount" format="integer" />
         <attr name="selectedPosition" format="integer" />
         <attr name="holdPassedPositions" format="boolean" />
+        <attr name="animated" format="boolean" />
     </declare-styleable>
 </resources>
