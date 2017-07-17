@@ -245,13 +245,12 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
             throw new IndexOutOfBoundsException("Selected position is bigger that total points count");
         }
 
-        if (mHoldPassedPositions) updateHighestSelectedPosition(position);
-
         if (mIsAnimated) {
             mSelectedPositionDelayed = position;
             if (mAnimatorSet.isRunning()) mAnimatorSet.cancel();
             mAnimatorSet.start();
         } else {
+            if (mHoldPassedPositions) updateHighestSelectedPosition(position);
             mSelectedPosition = position;
             invalidate();
         }
@@ -263,7 +262,10 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
         mSelectedCircleRadius = val;
         invalidate();
 
-        if (val == 0) mSelectedPosition = mSelectedPositionDelayed;
+        if (val == 0) {
+            if (mHoldPassedPositions) updateHighestSelectedPosition(mSelectedPositionDelayed);
+            mSelectedPosition = mSelectedPositionDelayed;
+        }
     }
 
     public void setHoldPassedPositions(boolean holdPassedPositions) {
