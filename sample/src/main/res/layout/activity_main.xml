@@ -27,6 +27,13 @@
         android:layout_marginTop="20dp"
         android:text="Enable animation" />
 
+    <android.support.v7.widget.AppCompatCheckBox
+        android:id="@+id/wrapEnabler"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="Wrap points if available" />
+
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

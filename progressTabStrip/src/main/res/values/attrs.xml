@@ -5,6 +5,7 @@
         <attr name="selectedCircleMargin" format="dimension" />
         <attr name="pointRadius" format="dimension" />
         <attr name="stripHeight" format="dimension" />
+        <attr name="stripWidth" format="dimension" />
 
         <attr name="selectedCircleColor" format="color" />
         <attr name="pointColorNormal" format="color" />

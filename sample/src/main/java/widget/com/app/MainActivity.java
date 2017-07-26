@@ -16,7 +16,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         final ProgressTabStrip pts = (ProgressTabStrip) findViewById(R.id.pts);
-        pts.setPointsCount(7);
+        pts.setPointsCount(2);
 
         ((AppCompatCheckBox) findViewById(R.id.holdEnabler))
                 .setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -31,6 +31,14 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                         pts.setAnimated(b);
+                    }
+                });
+
+        ((AppCompatCheckBox) findViewById(R.id.wrapEnabler))
+                .setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                    @Override
+                    public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                        pts.setStripWidth(b ? 280 : 0);
                     }
                 });
 

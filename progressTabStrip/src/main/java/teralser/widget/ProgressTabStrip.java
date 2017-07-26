@@ -40,6 +40,7 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
     private static final String INSTANCE_POINT_COUNT = "INSTANCE_POINT_COUNT";
     private static final String INSTANCE_STRIP_COLOR = "INSTANCE_STRIP_COLOR";
     private static final String INSTANCE_STRIP_HEIGHT = "INSTANCE_STRIP_HEIGHT";
+    private static final String INSTANCE_STRIP_WIDTH = "INSTANCE_STRIP_WIDTH";
     private static final String INSTANCE_SELECTED_POSITION = "INSTANCE_SELECTED_POSITION";
     private static final String INSTANCE_HIGHEST_SELECTED = "INSTANCE_HIGHEST_SELECTED";
     private static final String INSTANCE_HOLD_POSITIONS = "INSTANCE_HOLD_POSITIONS";
@@ -62,6 +63,7 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
 
     private float[] mCurrentPointCenter = new float[2];
     private float mSliceWidth;
+    private float drawWidth;
 
     private int mSelectedCircleColor;
     private int mSelectedCircleMargin;
@@ -76,6 +78,7 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
     private int mSelectedPosition;
     private int mSelectedPositionDelayed;
     private int mHighestSelectedPosition;
+    private int mStripWidth;
 
     private boolean mHoldPassedPositions;
     private boolean mIsAnimated;
@@ -123,6 +126,7 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
             mPointsCount = typedArray.getInteger(R.styleable.ProgressTabStrip_pointsCount, 0);
             mStripHeight = typedArray.getDimensionPixelSize(R.styleable.ProgressTabStrip_stripHeight,
                     Math.round(dp2px(STRIP_HEIGHT)));
+            mStripWidth = typedArray.getDimensionPixelSize(R.styleable.ProgressTabStrip_stripWidth, 0);
             mStripColor = typedArray.getColor(R.styleable.ProgressTabStrip_stripColor,
                     Color.parseColor(COLOR_GRAY));
             mSelectedPosition = typedArray.getInteger(R.styleable.ProgressTabStrip_selectedPosition, 0);
@@ -228,6 +232,11 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
 
     public void setStripHeight(int stripHeight) {
         mStripHeight = stripHeight;
+        invalidate();
+    }
+
+    public void setStripWidth(int stripWidth) {
+        this.mStripWidth = stripWidth;
         invalidate();
     }
 
@@ -366,9 +375,23 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
     }
 
     private void calculateSlice() {
-        float totalWidth = getWidth() - (getPaddingStart() + getPaddingEnd() +
+        drawWidth = getWidth() - (getPaddingStart() + getPaddingEnd() +
                 (mSelectedCircleMargin * 2) + (mSelectedCircleRadiusOriginal * 2));
-        mSliceWidth = totalWidth / (getPointsCount() - 1);
+
+        if (mStripWidth > 0) {
+            if (mStripWidth < mSelectedCircleRadiusOriginal * 2 + mSelectedCircleMargin) {
+                mStripWidth = mSelectedCircleRadiusOriginal * 2 + mSelectedCircleMargin;
+            }
+
+            float manualWidth = mStripWidth * (getPointsCount() - 1);
+            if (manualWidth > drawWidth) {
+                mStripWidth = 0;
+            } else {
+                drawWidth = manualWidth;
+            }
+        }
+
+        mSliceWidth = drawWidth / (getPointsCount() - 1);
     }
 
     private float getVerticalCenter() {
@@ -386,16 +409,17 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
 
         float cx;
         float cy = getVerticalCenter();
+        float center = getWidth() / 2;
+        boolean isStretched = mStripWidth <= 0;
 
         if (isRTL()) {
-            cx = i == 0 ? getWidth() - (getPaddingEnd() + mSelectedCircleRadiusOriginal + mSelectedCircleMargin) :
-                    i == (getPointsCount() - 1) ? (getPaddingStart() + mSelectedCircleRadiusOriginal + mSelectedCircleMargin) :
-                            mCurrentPointCenter[0] - mSliceWidth;
+            cx = i == 0 ? (!isStretched ? (center + (drawWidth / 2)) + mPointRadius :
+                    (getWidth() - (getPaddingEnd() + mSelectedCircleRadiusOriginal + mSelectedCircleMargin)))
+                    : mCurrentPointCenter[0] - mSliceWidth;
         } else {
-            cx = i == 0 ? (getPaddingStart() + mSelectedCircleRadiusOriginal + mSelectedCircleMargin) :
-                    i == (getPointsCount() - 1) ?
-                            getWidth() - (getPaddingEnd() + mSelectedCircleRadiusOriginal + mSelectedCircleMargin) :
-                            mCurrentPointCenter[0] + mSliceWidth;
+            cx = i == 0 ? (!isStretched ? (center - (drawWidth / 2)) - mPointRadius :
+                    ((getPaddingStart() + mSelectedCircleRadiusOriginal + mSelectedCircleMargin)))
+                    : mCurrentPointCenter[0] + mSliceWidth;
         }
 
         mCurrentPointCenter[0] = cx;
@@ -447,6 +471,7 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
         bundle.putInt(INSTANCE_POINT_COUNT, mPointsCount);
         bundle.putInt(INSTANCE_STRIP_COLOR, mStripColor);
         bundle.putInt(INSTANCE_STRIP_HEIGHT, mStripHeight);
+        bundle.putInt(INSTANCE_STRIP_WIDTH, mStripWidth);
         bundle.putInt(INSTANCE_SELECTED_POSITION, mSelectedPosition);
         bundle.putInt(INSTANCE_HIGHEST_SELECTED, mHighestSelectedPosition);
         bundle.putBoolean(INSTANCE_HOLD_POSITIONS, mHoldPassedPositions);
@@ -467,6 +492,7 @@ public class ProgressTabStrip extends View implements ViewPager.OnPageChangeList
             mPointsCount = bundle.getInt(INSTANCE_POINT_COUNT);
             mStripColor = bundle.getInt(INSTANCE_STRIP_COLOR);
             mStripHeight = bundle.getInt(INSTANCE_STRIP_HEIGHT);
+            mStripWidth = bundle.getInt(INSTANCE_STRIP_WIDTH);
             mSelectedPosition = bundle.getInt(INSTANCE_SELECTED_POSITION);
             mHighestSelectedPosition = bundle.getInt(INSTANCE_HIGHEST_SELECTED);
             mHoldPassedPositions = bundle.getBoolean(INSTANCE_HOLD_POSITIONS);
